@@ -11,7 +11,7 @@
 .Rprofile
 
 # Cache and temporary files
-*.csv (for large or raw data files that are not essential to the project)
-*.rds (same as above, depending on size and sensitivity)
+*.csv 
+*.rds 
 
 *.zip

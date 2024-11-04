@@ -5,23 +5,7 @@ library(patchwork)
 library(GGally)
 
 pathname <- './data/train.csv'
-df <- read_csv(
-  pathname,
-  col_types = cols(
-    PassengerId = "i",
-    Survived = "f",
-    Pclass  =  col_factor(levels = c("1", "2", "3")),
-    Name = "c",
-    Sex = "f",
-    Age = "d",
-    SibSp = "i",
-    Parch = "i",
-    Ticket = "c",
-    Fare = "d",
-    Cabin = "c",
-    Embarked = "f"
-  )
-)
+df <- read_rds('./processed_data.rds')
 
 head(df)
 sapply(df, function(x)
@@ -45,7 +29,6 @@ ggplot(long_data, aes(x = Value)) +
     panel.spacing = unit(1, "lines")
   )
 
-library(ggplot2)
 library(reshape2)
 
 # Assuming your data is named 'titanic'
@@ -183,12 +166,20 @@ p1 <- df %>%
   theme_minimal() +
   theme(legend.position = "none")
 
+# p2 <- ggplot(df, aes(x = Embarked, fill = Pclass)) +
+#   geom_bar(position = "fill") +
+#   scale_y_continuous(labels = scales::percent) +
+#   labs(title = "Embarkation Frequency Rate by Passengers Class",
+#        x = "Embarkation Port",
+#        y = "Percentage",
+#        fill = "Pclass") +
+#   theme_minimal()
+
 p2 <- ggplot(df, aes(x = Embarked, fill = Pclass)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Embarkation Frequency Rate by Passengers Class",
+  geom_bar(position = "dodge") +
+  labs(title = "Passenger Class Distribution by Embarkation Port",
        x = "Embarkation Port",
-       y = "Percentage",
+       y = "Count",
        fill = "Pclass") +
   theme_minimal()
 
@@ -210,74 +201,5 @@ ggplot(df, aes(x = Embarked, fill = Survived)) +
        fill = "Survive") +
   theme_minimal()
 
-df <- df %>%
-  mutate(
-    cabin_multiple = ifelse(is.na(Cabin), 0, str_count(Cabin, " ") + 1),
-    cabin_deck = as.factor(ifelse(is.na(Cabin), "NA", substr(Cabin, 1,1)))
-    )
+# Finding out the two ladies embarkation port
 
-# df %>%
-#   ggplot(aes(x=Pclass, y=Fare)) +
-#     geom_boxplot()
-#
-# df <- df %>%
-#   group_by(Pclass, Sex) %>%
-#   mutate(Age = ifelse(is.na(Age), median(Age, na.rm = TRUE), Age)) %>%
-#   ungroup()
-#
-# #
-# # df <- df %>%
-# #   group_by(Pclass) %>%
-# #   mutate(Embarked = ifelse(is.na(Embarked), Mode(Embarked, na.rm = TRUE), Embarked)) %>%
-# #   ungroup()
-#
-# df_subset <- df %>% select(-PassengerId, -Name, -Ticket, -Cabin, -Embarked)
-#
-# # ggpairs(df_subset)
-#
-# df %>%
-#   ggplot(aes(x = Pclass, fill = Survived)) +
-#   geom_bar(position = "fill")
-#
-# df %>%
-#   ggplot(aes(x = Survived, fill = Sex)) +
-#   geom_bar(position = "dodge")
-#
-# set.seed(1)
-# log_reg <- glm(Survived ~ ., data = df_subset, family = binomial)
-#
-# cv.error <- cv.glm(df_subset, log_reg, K = 10)$delta[1]
-# cv.error
-#
-# preds <- predict(log_reg, type="response")
-# preds
-#
-# predicted <- rep(0, length(preds))
-# predicted[preds > 0.5] <- 1
-#
-# predicted
-#
-# table(df$Survived, predicted)
-#
-# # Load required library
-# library(caret)
-#
-# # Set seed for reproducibility
-# set.seed(123)
-#
-# # Split data into training (80%) and test (20%) sets
-# train_index <- createDataPartition(df$Survived, p = 0.8, list = FALSE)
-# train_data <- df_subset[train_index, ]
-# test_data <- df_subset[-train_index, ]
-#
-# # Train the logistic regression model on the training set
-# log_reg <- glm(Survived ~ ., data = train_data, family = binomial)
-#
-# # Make predictions on the test set
-# test_preds <- predict(log_reg, newdata = test_data, type = "response")
-# test_predicted <- ifelse(test_preds > 0.5, 1, 0)
-#
-# # Calculate accuracy on the test set
-# test_actual <- as.numeric(test_data$Survived) - 1  # Convert factor to 0/1
-# test_accuracy <- mean(test_predicted == test_actual)
-# test_accuracy
