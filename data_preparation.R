@@ -25,7 +25,4 @@ df <- df %>%
     cabin_deck = as.factor(ifelse(is.na(Cabin), "NA", substr(Cabin, 1,1)))
   )
 
-# Based on ticket number, mode of 'Embarked' and info from the web
-df[is.na(df$Embarked), "Embarked"] <- "S"
-
 saveRDS(df, "./processed_data.rds")

@@ -16,3 +16,7 @@ df %>%
 
 # Most of the first class passengers embarked in Southampton.
 # Ticket number suggests it was purchased in Southampton
+
+df[is.na(df$Embarked), "Embarked"] <- "S"
+
+saveRDS(df, "./processed_data.rds")

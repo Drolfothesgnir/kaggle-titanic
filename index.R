@@ -4,7 +4,6 @@ library(ggplot2)
 library(patchwork)
 library(GGally)
 
-pathname <- './data/train.csv'
 df <- read_rds('./processed_data.rds')
 
 head(df)
@@ -201,5 +200,4 @@ ggplot(df, aes(x = Embarked, fill = Survived)) +
        fill = "Survive") +
   theme_minimal()
 
-# Finding out the two ladies embarkation port
 
