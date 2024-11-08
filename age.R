@@ -109,7 +109,7 @@ df <- df %>%
   mutate(age_imputed = is.na(Age), Age = coalesce(Age, median_age)) %>%
   select(-median_age)
 
-df %>% 
+df %>%
   summarise(
     missing_age = sum(is.na(Age)),
     imputed_count = sum(age_imputed),

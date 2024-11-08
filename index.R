@@ -200,4 +200,13 @@ ggplot(df, aes(x = Embarked, fill = Survived)) +
        fill = "Survive") +
   theme_minimal()
 
+ggplot(df, aes(x = title_clean, fill = Survived)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival Rate by passengers title",
+       x = "Title",
+       y = "Percentage",
+       fill = "Survive") +
+  theme_minimal()
+
 

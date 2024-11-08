@@ -8,8 +8,7 @@ create_boxplot <- function(data,
                            add_mean_points = FALSE,
                            dodge = FALSE,
                            rotate_labels = FALSE,
-                           box_color = "#69b3a2"
-                           ) {
+                           box_color = "#69b3a2") {
   # Create base plot
   p <- ggplot(data, aes(.data[[x_col]], .data[[y_col]])) +
     theme_minimal() +

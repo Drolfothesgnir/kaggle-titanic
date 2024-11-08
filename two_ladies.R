@@ -1,4 +1,4 @@
-# Two ladies, Miss Amelie Icard and Mrs. Martha Evelyn have unknown location of 
+# Two ladies, Miss Amelie Icard and Mrs. Martha Evelyn have unknown location of
 # embarkation
 
 library(tidyverse)
@@ -8,7 +8,7 @@ df <- read_rds("processed_data.rds")
 df %>%
   filter(is.na(Embarked))
 
-df %>% 
+df %>%
   filter(Pclass == 1) %>%
   drop_na(Embarked) %>%
   group_by(Embarked) %>%

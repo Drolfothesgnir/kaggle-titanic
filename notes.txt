@@ -28,3 +28,10 @@ F -> 2 (64),3 (most)
 G -> 3 (few)
 
 infer deck from cabin number or class
+
+
+handle interactions between Sex and title_clean, because Sex is (almost) useless when knowing passenger's title.
+
+perform data cleanings as functions, not as scripts.
+
+check and clean test data.
