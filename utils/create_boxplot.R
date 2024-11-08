@@ -1,6 +1,3 @@
-library(tidyverse)
-library(ggthemes)
-
 create_boxplot <- function(data,
                            x_col,
                            y_col,
@@ -29,11 +26,14 @@ create_boxplot <- function(data,
       panel.grid.minor = element_blank()
     )
   
+  # Set dodge width for consistent spacing
+  dodge_width <- 0.75
+  
   # Add fill if specified
   if (!is.null(fill_col)) {
     p <- p + aes(fill = .data[[fill_col]])
     if (dodge) {
-      p <- p + geom_boxplot(position = "dodge")
+      p <- p + geom_boxplot(position = position_dodge(width = dodge_width))
     } else {
       p <- p + geom_boxplot()
     }
@@ -57,23 +57,46 @@ create_boxplot <- function(data,
   
   # Add mean points
   if (add_mean_points == TRUE) {
-    p <- p + stat_summary(
-      fun = mean,
-      geom = "point",
-      shape = 23,
-      size = 3,
-      fill = "white"
-    )
+    if (!is.null(fill_col) && dodge) {
+      p <- p + stat_summary(
+        fun = mean,
+        geom = "point",
+        shape = 23,
+        size = 3,
+        fill = "white",
+        position = position_dodge(width = dodge_width)
+      )
+    } else {
+      p <- p + stat_summary(
+        fun = mean,
+        geom = "point",
+        shape = 23,
+        size = 3,
+        fill = "white"
+      )
+    }
   }
   
-  # Add number of observations
-  p <- p + stat_summary(
-    fun.data = function(x) {
-      return(c(y = max(x) + 2, label = length(x)))
-    },
-    geom = "text",
-    size = 3
-  )
+  # Add number of observations with proper positioning
+  if (!is.null(fill_col) && dodge) {
+    p <- p + stat_summary(
+      fun.data = function(x) {
+        return(c(y = max(x) + 2, label = length(x)))
+      },
+      geom = "text",
+      size = 3,
+      position = position_dodge(width = dodge_width),
+      aes(group = .data[[fill_col]])  # This ensures labels follow dodge grouping
+    )
+  } else {
+    p <- p + stat_summary(
+      fun.data = function(x) {
+        return(c(y = max(x) + 2, label = length(x)))
+      },
+      geom = "text",
+      size = 3
+    )
+  }
   
   return(p)
 }
