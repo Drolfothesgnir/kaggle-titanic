@@ -1,13 +1,15 @@
 library(caret)
 library(tidyverse)
 
-df <- read_rds("processed_data.rds")
+source("prepare_data.R")
+
+df <- prepare_data()
 
 set.seed(1)
 # Set up cross-validation with k folds (e.g., 10)
 train_control <- trainControl(method = "cv", number = 10)
 
-# Train and cross-validate the model on the same dataset in a proper way
+# Train and cross-validate the model on the same data set in a proper way
 model <- train(
   Survived ~ Age + Sex + Pclass + title_clean + family_size,
   data = df,

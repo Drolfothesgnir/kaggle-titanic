@@ -1,12 +1,16 @@
-library(boot)
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
 library(GGally)
 
-df <- read_rds('./processed_data.rds')
+source("prepare_data.R")
+
+
+df <- prepare_data()
 
 head(df)
+
+
 sapply(df, function(x)
   sum(is.na(x)))
 
@@ -208,5 +212,7 @@ ggplot(df, aes(x = title_clean, fill = Survived)) +
        y = "Percentage",
        fill = "Survive") +
   theme_minimal()
+
+  
 
 

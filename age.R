@@ -1,49 +1,14 @@
 library(tidyverse)
 
-df <- read_rds("processed_data.rds")
+source("utils/load_data.R")
+source("two_ladies.R")
+source("feature_engineering.R")
+
+df <- load_data() %>%
+  impute_embarked() %>%
+  engineer_features()
 
 sum(is.na(df$Age)) # 177
-
-# <-------------------- Feature Engineering -------------------->
-
-# Regex for extracting title from Name of the passenger
-# 'Moran, Mr. James' -> 'Mr.'
-regex_string <- ".*, ([A-Za-z ]+\\.?) "
-
-# Should work fine, since every passenger (in the training set) has a title
-extract_title <- function(name) {
-  return (str_match(name, regex_string)[2])
-}
-
-# combining number of parents/children and number of siblings
-df <- df %>%
-  mutate(family_size = Parch + SibSp)
-
-# extracting title from a name
-df <- df %>%
-  mutate(title = as.factor(sapply(Name, extract_title, USE.NAMES = FALSE)))
-
-# Combining rare titles into more common groups
-
-coerce_titles <- function(title) {
-  return(
-    case_when(
-      grepl("Capt|Col|Major", title) ~ "Military",
-      grepl("Mme|Ms", title) ~ "Mrs.",
-      grepl("Don|Lady|Sir|the Countess|Jonkheer", title) ~ "Noble",
-      grepl("Mlle", title) ~ "Miss.",
-      grepl("Dr|Rev", title) ~ "Professional",
-      .default  = as.character(title)
-    )
-  )
-}
-
-# Rare titles are grouped together because with their unique titles they represent
-# only few people
-title_clean <- coerce_titles(as.character(df$title))
-
-df <- df %>%
-  mutate(title_clean = factor(title_clean))
 
 # <-------------------- Visualization of Age distributions -------------------->
 
@@ -81,7 +46,7 @@ create_boxplot(
   x_label = "Title"
 )
 
-# Plots suggests that different titlt groups have different age distributions.
+# Plots suggests that different title groups have different age distributions.
 # Also within (almost) each title group, class-based age distributions are different.
 
 # <-------------------- Age imputation -------------------->
@@ -103,11 +68,23 @@ age_imputation_data <- bind_rows(small_group_medians, large_group_medians)
 
 age_imputation_data
 
+
+
 # Imputing age from title and class
+impute_age <- function(data) {
+  return (
+    data %>%
+      left_join(age_imputation_data, by = c("title_clean", "Pclass")) %>%
+      mutate(
+        age_imputed = is.na(Age),
+        Age = coalesce(Age, median_age)
+      ) %>%
+      select(-median_age)
+  )
+}
+
 df <- df %>%
-  left_join(age_imputation_data, by = c("title_clean", "Pclass")) %>%
-  mutate(age_imputed = is.na(Age), Age = coalesce(Age, median_age)) %>%
-  select(-median_age)
+  impute_age()
 
 df %>%
   summarise(
@@ -115,5 +92,3 @@ df %>%
     imputed_count = sum(age_imputed),
     total_rows = n()
   )
-
-saveRDS(df, "./processed_data.rds")

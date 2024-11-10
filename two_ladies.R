@@ -3,7 +3,9 @@
 
 library(tidyverse)
 
-df <- read_rds("processed_data.rds")
+source("utils/load_data.R")
+
+df <- load_data()
 
 df %>%
   filter(is.na(Embarked))
@@ -17,6 +19,9 @@ df %>%
 # Most of the first class passengers embarked in Southampton.
 # Ticket number suggests it was purchased in Southampton
 
-df[is.na(df$Embarked), "Embarked"] <- "S"
-
-saveRDS(df, "./processed_data.rds")
+impute_embarked <- function(data) {
+  return (
+    data %>%
+      mutate(Embarked = if_else(is.na(Embarked), "S", Embarked))
+  )
+}
