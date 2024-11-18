@@ -16,6 +16,20 @@ augment_by_family_size <- function(df) {
            mutate(family_size = Parch + SibSp))
 }
 
+augment_by_family_type <- function(df) {
+  family_type <- case_when(
+    df$family_size == 0 ~ "Solo",
+    df$family_size < 4 ~ "Small family",
+    # df$family_size < 6 ~ "Med. sized family",
+    df$family_size >= 4 ~ "Large family"
+  )
+  
+  family_type <- factor(family_type,
+                        levels = c("Solo", "Small family","Large family"))
+  
+  return(df %>%
+           mutate(family_type = family_type))
+}
 
 # Regex for extracting title from Name of the passenger
 # 'Moran, Mr. James' -> 'Mr.'
@@ -41,6 +55,19 @@ coerce_titles <- function(title) {
   )
 }
 
+augment_by_title_alt <- function(title_clean, sex) {
+  case_when(
+    # Group all high-status males together (Military, Noble, Professional)
+    title_clean %in% c("Military", "Noble", "Professional") &
+      sex == "male" ~
+      "HighStatus_male",
+    # Group all high-status females together
+    title_clean %in% c("Noble", "Professional") & sex == "female" ~
+      "HighStatus_female",
+    .default = title_clean
+  )
+}
+
 augment_by_title <- function(df) {
   # extracting title from a name
   df <- df %>%
@@ -50,8 +77,13 @@ augment_by_title <- function(df) {
   # only few people
   title_clean <- coerce_titles(as.character(df$title))
   
+  title_clean_alt <- augment_by_title_alt(title_clean, df$Sex)
+  
   df <- df %>%
-    mutate(title_clean = factor(title_clean))
+    mutate(
+      title_clean = factor(title_clean),
+      title_clean_alt = factor(title_clean_alt)
+    )
   
   return(df)
 }
@@ -60,5 +92,6 @@ engineer_features <- function(df) {
   df %>%
     augment_by_cabin_info() %>%
     augment_by_family_size() %>%
+    augment_by_family_type() %>%
     augment_by_title()
 }

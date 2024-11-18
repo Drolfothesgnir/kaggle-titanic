@@ -1,23 +1,50 @@
 library(caret)
 library(tidyverse)
-
 source("prepare_data.R")
 
-df <- prepare_data()
+# Load and prepare data once
+df <- prepare_data() %>%
+  mutate(Survived = factor(Survived, levels = c(0, 1), labels = c("No", "Yes")))
 
+# Set up cross-validation control once
 set.seed(1)
-# Set up cross-validation with k folds (e.g., 10)
-train_control <- trainControl(method = "cv", number = 10)
+train_control <- trainControl(
+  method = "cv",
+  number = 10,
+  classProbs = TRUE,  # Get probability predictions
+  savePredictions = "final",  # Save predictions for later analysis
+)
 
-# Train and cross-validate the model on the same data set in a proper way
-model <- train(
-  Survived ~ Age + Sex + Pclass + title_clean + family_size,
+# Create formula once
+model_formula <- Survived ~ Age + Pclass + title_clean + family_size
+
+# Train multiple models
+models <- list()
+
+# Logistic Regression
+models[["logistic"]] <- train(
+  model_formula,
   data = df,
   method = "glm",
   family = "binomial",
   trControl = train_control
 )
 
-# View cross-validation results
-print(model)
-summary(model)
+# LDA
+models[["lda"]] <- train(
+  model_formula,
+  data = df,
+  method = "lda",
+  trControl = train_control
+)
+
+# Compare results
+results <- resamples(models)
+summary(results)
+
+# Visualization of comparison
+bwplot(results)
+
+# Detailed model summaries
+print(models[["logistic"]])
+print(models[["lda"]])

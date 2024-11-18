@@ -4,7 +4,7 @@ source("utils/load_data.R")
 source("two_ladies.R")
 source("feature_engineering.R")
 
-df <- load_data() %>%
+df <- load_train_data() %>%
   impute_embarked() %>%
   engineer_features()
 
@@ -43,6 +43,16 @@ create_boxplot(
   fill = "Pclass",
   dodge = TRUE,
   title = "Distribution of age for every title, grouped by passengers class",
+  x_label = "Title"
+)
+
+create_boxplot(
+  df_age_1,
+  "title_clean",
+  "Age",
+  fill = "Sex",
+  dodge = TRUE,
+  title = "Distribution of age for every title, grouped by passengers sex",
   x_label = "Title"
 )
 

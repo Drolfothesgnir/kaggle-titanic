@@ -35,3 +35,145 @@ handle interactions between Sex and title_clean, because Sex is (almost) useless
 perform data cleanings as functions, not as scripts.
 
 check and clean test data.
+
+
+current situation #1:
+  These are the variables that I engineered:
+    cabin_multiple:
+      Number of cabins occupied by a passenger. Can be viewed as proxy for a 
+      socio-economic status. Considered insignificant in the logistic regression
+      setting, likely due to a presence of Pclass variable,
+      which is the main SE status indicator.
+    
+    cabin_deck:
+      Indicator of the passengers deck location. Was created because there was 
+      bias towards lower deck passengers, turned out to be uninformative,
+      since a lot of passengers had unknown Cabin number, and therefore unknown
+      cabin deck. Can be viewed as proxy for a 
+      socio-economic status. Considered insignificant in the logistic regression
+      setting, likely due to its low info value.
+      
+    family_size:
+      Sum of Parch and SibSp columns, which means number of children/parents
+      on board + number of siblings on board. Considered significant in the
+      logistic regression setting. Its coefficient in the model has negative
+      value, which suggests that passengers with bigger families had lower log-odds
+      of survival. Should I explore it further?
+      
+    title:
+      Passengers title (Mr., Miss., Mrs., etc.) extracted from name. Considered
+      significant but not included in the logistic regression model, because of 
+      rank defficiency. There are rare titles, like the Countess and Jonkheer,
+      which include only one or two people, therefore considered not representative.
+      title_clean is used instead of title.
+      
+    title_clean:
+      Same as title, but rare titles aggregated to more common ones, like the Countess
+      and Jonkheer become Noble. Considered significant and included into log. reg.
+      model. The problem with clean titles is that titles like Mrs. and Mr. implie
+      passengers sex, which allows to remove Sex from selected predictors, but
+      titles like Noble and Professional don't implie sex. It means that in the 
+      model without sex as predictor, those observations lose crucial sex information.
+      title_clean_alt wes designed to solve this problem, but
+      it didn't work. There are only 23 such observations in the training set,
+      so I decided to include title_clean as it is. 
+      
+
+  I imputed missing ages with title_clean-based median ages.
+
+  Here is the summary of cross-validated logistic regression fit:
+    Generalized Linear Model 
+
+    891 samples
+      4 predictor
+      2 classes: '0', '1' 
+
+    No pre-processing
+    Resampling: Cross-Validated (10 fold) 
+    Summary of sample sizes: 803, 802, 801, 802, 802, 802, ... 
+    Resampling results:
+
+      Accuracy   Kappa    
+      0.8270869  0.6310522
+
+
+    > summary(model)
+
+    Call:
+    NULL
+
+    Coefficients:
+                            Estimate Std. Error z value Pr(>|z|)    
+    (Intercept)              4.438242   0.586834   7.563 3.94e-14 ***
+    Age                     -0.035989   0.009918  -3.629 0.000285 ***
+    Pclass2                 -1.511099   0.295405  -5.115 3.13e-07 ***
+    Pclass3                 -2.619664   0.278499  -9.406  < 2e-16 ***
+    title_cleanMilitary     -2.682309   1.127774  -2.378 0.017387 *  
+    title_cleanMiss.        -0.314314   0.477056  -0.659 0.509984    
+    title_cleanMr.          -3.229963   0.522539  -6.181 6.36e-10 ***
+    title_cleanMrs.          0.662545   0.545969   1.214 0.224930    
+    title_cleanNoble        -2.337812   1.084746  -2.155 0.031149 *  
+    title_cleanProfessional -3.113403   0.880316  -3.537 0.000405 ***
+    family_size             -0.451958   0.079195  -5.707 1.15e-08 ***
+    ---
+    Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+    (Dispersion parameter for binomial family taken to be 1)
+
+        Null deviance: 1186.66  on 890  degrees of freedom
+    Residual deviance:  733.47  on 880  degrees of freedom
+    AIC: 755.47
+
+    Number of Fisher Scoring iterations: 5
+    
+  
+  
+  Here is the summary of alternative log. reg. fit with title_clean_alt:
+    Generalized Linear Model 
+
+    891 samples
+      4 predictor
+      2 classes: '0', '1' 
+
+    No pre-processing
+    Resampling: Cross-Validated (10 fold) 
+    Summary of sample sizes: 803, 802, 801, 802, 802, 802, ... 
+    Resampling results:
+
+      Accuracy   Kappa    
+      0.8338287  0.6454771
+
+
+    > summary(model)
+
+    Call:
+    NULL
+
+    Coefficients:
+                                    Estimate Std. Error z value Pr(>|z|)    
+    (Intercept)                     16.312680 502.529997   0.032 0.974104    
+    Age                             -0.035675   0.009905  -3.602 0.000316 ***
+    Pclass2                         -1.499655   0.293900  -5.103 3.35e-07 ***
+    Pclass3                         -2.611272   0.278073  -9.391  < 2e-16 ***
+    title_clean_altHighStatus_male -15.120127 502.530084  -0.030 0.975997    
+    title_clean_altMaster.         -11.885109 502.530099  -0.024 0.981131    
+    title_clean_altMiss.           -12.203120 502.529880  -0.024 0.980627    
+    title_clean_altMr.             -15.120306 502.529823  -0.030 0.975997    
+    title_clean_altMrs.            -11.231605 502.529901  -0.022 0.982169    
+    family_size                     -0.451818   0.079306  -5.697 1.22e-08 ***
+    ---
+    Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+    (Dispersion parameter for binomial family taken to be 1)
+
+        Null deviance: 1186.66  on 890  degrees of freedom
+    Residual deviance:  728.78  on 881  degrees of freedom
+    AIC: 748.78
+
+    Number of Fisher Scoring iterations: 13
+
+current situation #2:
+  I've created family_type variable, which is just categorical family_size. Including it and its interactions
+  with Pclass and Age into the model didn't improve the log. reg. model.
+  I think it's time to move on with model selection and tuning.
+  I've fitted LDA and got almost same results.

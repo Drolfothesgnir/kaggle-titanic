@@ -23,7 +23,7 @@ ggplot(long_data, aes(x = Value)) +
   geom_histogram(fill = "steelblue",
                  color = "white",
                  bins = 30) +
-  facet_wrap(~ Variable, scales = "free", ncol = 2) +
+  facet_wrap( ~ Variable, scales = "free", ncol = 2) +
   theme_minimal() +
   labs(title = "Distribution of Numeric Variables in Titanic Dataset", x = "Value", y = "Count") +
   theme(
@@ -213,6 +213,23 @@ ggplot(df, aes(x = title_clean, fill = Survived)) +
        fill = "Survive") +
   theme_minimal()
 
-  
 
+rare_people <- df %>%
+  filter(title_clean %in% c("Military", "Noble", "Professional"))
 
+table(rare_people$Survived, droplevels(rare_people$title_sex))
+
+df %>%
+  mutate(log_Fare = log(Fare)) %>%
+  create_boxplot("Pclass", "log_Fare", title = "log(Fare) distribution by passengers class", y_label = "Log(Fare)")
+
+create_boxplot(df, "Pclass", "family_size")
+
+ggplot(df, aes(x = family_type, fill = Survived)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival Rate by family type",
+       x = "Family type",
+       y = "Percentage",
+       fill = "Survived") +
+  theme_minimal()
