@@ -177,3 +177,16 @@ current situation #2:
   with Pclass and Age into the model didn't improve the log. reg. model.
   I think it's time to move on with model selection and tuning.
   I've fitted LDA and got almost same results.
+  
+current situation #3:
+  I've fit Random Forest, GBM and XGBoost to the data.All of the ensemble methods 
+  performed better than linear ones. XGB seems to be the best model so far.
+  Here the performance summary:
+    # A tibble: 5 × 7
+      .estimator model    accuracy  sens  spec precision f_meas
+      <chr>      <chr>       <dbl> <dbl> <dbl>     <dbl>  <dbl>
+    1 binary     logistic    0.824 0.880 0.734     0.841  0.860
+    2 binary     lda         0.833 0.893 0.737     0.845  0.868
+    3 binary     rf          0.845 0.905 0.749     0.852  0.878
+    4 binary     gbm         0.853 0.913 0.757     0.858  0.884
+    5 binary     xgb         0.861 0.911 0.781     0.870  0.890
