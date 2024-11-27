@@ -2,6 +2,10 @@ library(dplyr)
 library(yardstick)
 
 get_pred_data <- function(model, data, response_var) {
+  if (!response_var %in% names(data)) {
+    stop(sprintf("Response variable '%s' not found in data", response_var))
+  }
+  
   pred <- predict(model, data)
   actual <- data[[response_var]]
   
