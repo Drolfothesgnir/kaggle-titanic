@@ -190,3 +190,21 @@ current situation #3:
     3 binary     rf          0.845 0.905 0.749     0.852  0.878
     4 binary     gbm         0.853 0.913 0.757     0.858  0.884
     5 binary     xgb         0.861 0.911 0.781     0.870  0.890
+
+current situation #4:
+  I've decided to drop LDA and GBM. I don't seen any reason to keep them, since LDA perform almost the same as Log Reg, 
+  but is more complex (I think), and GBM usually perform worse then XGB.
+  XGB turned out to be unstable in its prediction accuracy. It's oscillating around 86%.
+  It was about 88% once! I considered it suspicious so I refit it with different seed. RF sometimes outperforms it.
+  I might need to play with tuning a little bit more, but I think I'm reached the ceiling of performance for these kind of models
+  in the current setting. RF, unlike XGB,  shown consistency in prediciton accuracy, about 85.1% through different seeds.
+  Current performance state:
+    # A tibble: 3 × 7
+      .estimator model       accuracy  sens  spec precision f_meas
+      <chr>      <chr>          <dbl> <dbl> <dbl>     <dbl>  <dbl>
+    1 binary     logistic       0.824 0.880 0.734     0.841  0.860
+    2 binary     rf             0.851 0.913 0.751     0.855  0.883
+    3 binary     xgb_stage_1    0.853 0.900 0.778     0.867  0.883
+
+  xgb_stage_1 indicates that in this fit there was used coarse param grid, to find promising param regions.
+  
