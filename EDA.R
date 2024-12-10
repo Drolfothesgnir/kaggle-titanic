@@ -213,12 +213,6 @@ ggplot(df, aes(x = title_clean, fill = Survived)) +
        fill = "Survive") +
   theme_minimal()
 
-
-rare_people <- df %>%
-  filter(title_clean %in% c("Military", "Noble", "Professional"))
-
-table(rare_people$Survived, droplevels(rare_people$title_sex))
-
 df %>%
   mutate(log_Fare = log(Fare)) %>%
   create_boxplot("Pclass", "log_Fare", title = "log(Fare) distribution by passengers class", y_label = "Log(Fare)")
@@ -233,3 +227,14 @@ ggplot(df, aes(x = family_type, fill = Survived)) +
        y = "Percentage",
        fill = "Survived") +
   theme_minimal()
+
+df %>%
+  select(title_clean, Survived) %>%
+  filter(title_clean %in% c("Mr.", "Military")) %>%
+  mutate(title_clean = droplevels(title_clean)) %>%
+  table()
+
+#            Survived
+# title_clean   0   1
+#    Military   3   2
+#    Mr.      436  81

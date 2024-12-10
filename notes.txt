@@ -208,3 +208,31 @@ current situation #4:
 
   xgb_stage_1 indicates that in this fit there was used coarse param grid, to find promising param regions.
   
+current situation #5:
+  I've fitted linear and radial SVMs to the data. I've coerced rare title_clean
+  (Noble, Military, etc.) further into Mr. and Ms., because I think it will make
+  model less noisy, since there are only few of such titles. Here is the final
+  model performance assesment:
+    .estimator model           accuracy  sens  spec precision f_meas
+    <chr>      <chr>              <dbl> <dbl> <dbl>     <dbl>  <dbl>
+  1 binary     logistic           0.831 0.887 0.740     0.845  0.866
+  2 binary     rf                 0.848 0.918 0.737     0.848  0.882
+  3 binary     svm_linear         0.832 0.893 0.734     0.843  0.867
+  4 binary     svm_radial_fine    0.836 0.898 0.737     0.846  0.871
+  5 binary     xgb_stage_2        0.860 0.913 0.775     0.867  0.889
+  
+  SVM didn't improve anything. I've made some feature importance analysis, but I
+  don't want to play with this project anymore. I'll submit my predictions, see
+  how other people handled this task, analyze their approach, and maybe try to
+  improve my model.
+  
+current situation #6:
+  I've got 78.229% accuracy on the test set, with RF, and 76.974% with XGB.
+  I've visited Manav Sehgal's solution to the problem page. He achieved ~86%
+  accuaracy on the test set. He used 8 features, including Embarked and Fare,
+  which i dropped. He made more...cool feature engineering. He didn't use categorical
+  variables, he turned them into numerical. He divided Fare and Age into bands.
+  I'll try to do the same. Most important things to remember:
+  1) Don't discard information without trying to get the maximum value from it.
+  2) The weaknesses of some models aren't necessarily weaknesses of other models.
+  3) I should try to represent data in different forms.

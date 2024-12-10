@@ -9,3 +9,9 @@ prepare_data <- function() {
            engineer_features() %>%
            impute_age())
 }
+
+prepare_test_data <- function() {
+  return(load_test_data() %>%
+           engineer_features() %>%
+           impute_age())
+}

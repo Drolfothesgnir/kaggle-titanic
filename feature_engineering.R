@@ -60,10 +60,10 @@ augment_by_title_alt <- function(title_clean, sex) {
     # Group all high-status males together (Military, Noble, Professional)
     title_clean %in% c("Military", "Noble", "Professional") &
       sex == "male" ~
-      "HighStatus_male",
+      "Mr.",
     # Group all high-status females together
     title_clean %in% c("Noble", "Professional") & sex == "female" ~
-      "HighStatus_female",
+      "Mrs.",
     .default = title_clean
   )
 }
