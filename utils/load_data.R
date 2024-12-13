@@ -4,7 +4,7 @@ train_pathname <- './data/train.csv'
 test_pathname <- './data/test.csv'
 
 load_train_data <- function() {
-  return (read_csv(
+  data <- read_csv(
     train_pathname,
     col_types = cols(
       PassengerId = "i",
@@ -20,7 +20,12 @@ load_train_data <- function() {
       Cabin = "c",
       Embarked = "f"
     )
-  ))
+  )
+  data$Survived <- factor(data$Survived,
+                          levels = c(0, 1),
+                          labels = c("No", "Yes"))
+  
+  return (data)
 }
 
 load_test_data <- function() {

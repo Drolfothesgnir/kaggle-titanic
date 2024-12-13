@@ -5,7 +5,7 @@ library(tidyverse)
 
 source("utils/load_data.R")
 
-df <- load_data()
+df <- load_train_data()
 
 df %>%
   filter(is.na(Embarked))
@@ -15,6 +15,12 @@ df %>%
   drop_na(Embarked) %>%
   group_by(Embarked) %>%
   summarise(n_embarked = n())
+
+# Embarked n_embarked
+# <fct>           <int>
+# 1 S               127
+# 2 C                85
+# 3 Q                 2
 
 # Most of the first class passengers embarked in Southampton.
 # Ticket number suggests it was purchased in Southampton

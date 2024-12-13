@@ -236,3 +236,14 @@ current situation #6:
   1) Don't discard information without trying to get the maximum value from it.
   2) The weaknesses of some models aren't necessarily weaknesses of other models.
   3) I should try to represent data in different forms.
+  
+current situation#6:
+  RF is the best model for this, or there may be some X_ULTRA_MEGATRON model
+  designed specificaly for this kind of problems, which i don't know. I've used
+  up all my submissions today. I don't want to dig further. i'm getting bored.
+  i'll try to reproduce my best setup, because i don't rememebr exact params,
+  only formula. 0.78947 test accuracy is not that bad. actually second analysis,
+  which i've performed based on guides, didn't improve thing a lot. The only new
+  things are new fare_band predictor and family_band instead of family_size.
+  I'll watch YouTube video on the topic again, because the guy told he has 82%
+  or something test accuracy. and after it i want to move forward

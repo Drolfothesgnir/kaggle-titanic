@@ -1,240 +1,362 @@
-library(tidyverse)
+# EDA 2
 library(ggplot2)
+library(dplyr)
 library(patchwork)
-library(GGally)
 
-source("prepare_data.R")
+source("utils/load_data.R")
 
+train_df <- load_train_data()
+test_df <- load_test_data()
 
-df <- prepare_data()
+head(train_df)
+head(test_df)
 
-head(df)
+dim(train_df) # 891  12
+dim(test_df) # 418 11
 
+colSums(is.na(train_df))
+# 2 values for Embarked are missing
+colSums(is.na(train_df)) / 891
+# 77% of Cabin is missing
+# 20% of Age is missing
 
-sapply(df, function(x)
-  sum(is.na(x)))
+colSums(is.na(test_df))
+# test_df has 1 missing Fare value
+colSums(is.na(test_df)) / 418
+# 78% of Cabin is missing
+# 21% of Age is missing
 
-long_data <- df %>%
-  select(Age, SibSp, Parch, Fare) %>%
-  gather(key = "Variable", value = "Value")
+# Drop Cabin out of the analysis
+# Impute Age
+numeric_vars <- c("Survived", "SibSp", "Parch", "Fare")
+# actually Survived is rather categorical, but it's analysis is located here
+
+# Distribution of numerical variables in the data
+# Survived
+mean(train_df$Survived == 1) 
+# 38% survival test
+
+survival_data <- data.frame(
+  status = c("Did Not Survive", "Survived"),
+  count = c(549, 342)  # 549 did not survive, 342 survived
+) %>%
+  mutate(
+    percentage = count / sum(count),
+    label = scales::percent(percentage, accuracy = 0.1)
+  )
+
+source("utils/create_pie_chart.R")
 
 # Create the plot
-ggplot(long_data, aes(x = Value)) +
-  geom_histogram(fill = "steelblue",
-                 color = "white",
-                 bins = 30) +
-  facet_wrap( ~ Variable, scales = "free", ncol = 2) +
-  theme_minimal() +
-  labs(title = "Distribution of Numeric Variables in Titanic Dataset", x = "Value", y = "Count") +
-  theme(
-    strip.text = element_text(size = 12, face = "bold"),
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-    panel.spacing = unit(1, "lines")
-  )
+create_pie_chart(
+  survival_data,
+  "Titanic Passenger Survival Rate",
+  "Survival Status",
+  colors = c("#E74C3C", "#2ECC71")
+)
 
-library(reshape2)
-
-# Assuming your data is named 'titanic'
-# Select only numeric columns
-numeric_data <- df %>%
-  select(Age, SibSp, Parch, Fare)
-
-# Calculate correlation matrix
-cor_matrix <- cor(numeric_data, use = "complete.obs")
-
-# Convert correlation matrix to long format for ggplot
-cor_melted <- melt(cor_matrix)
-
-# Create the heatmap
-ggplot(cor_melted, aes(x = Var1, y = Var2, fill = value)) +
-  geom_tile() +
-  # Add correlation values in the cells
-  geom_text(aes(label = sprintf("%.2f", value)), color = "white") +
-  # Use a diverging color palette centered at 0
-  scale_fill_gradient2(
-    low = "#E46262",
-    # Red for negative correlations
-    mid = "white",
-    # White for correlations near 0
-    high = "#6BB0E5",
-    # Blue for positive correlations
-    midpoint = 0,
-    limits = c(-1, 1)
-  ) +
-  # Customize the theme
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(
-      angle = 45,
-      hjust = 1,
-      size = 10
-    ),
-    axis.text.y = element_text(size = 10),
-    legend.title = element_text(size = 10),
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
-  ) +
-  # Add labels
-  labs(title = "Correlation Matrix of Titanic Numeric Variables",
-       x = "",
-       y = "",
-       fill = "Correlation") +
-  # Make the plot square
-  coord_fixed()
-
-# Calculate average values for each column by Survived status
-pivot_table <- df %>%
-  group_by(Survived) %>%
-  summarize(
-    Avg_Age = mean(Age, na.rm = TRUE),
-    Avg_SibSp = mean(SibSp, na.rm = TRUE),
-    Avg_Parch = mean(Parch, na.rm = TRUE),
-    Avg_Fare = mean(Fare, na.rm = TRUE)
-  )
-
-pivot_table
-
-
-"Passenger Class Analysis"
-df %>%
-  ggplot(aes(x = Survived, fill = Survived)) +
-  geom_bar() +
-  scale_fill_manual(values = c("0" = "red3", "1" = "green4")) +
-  labs(title = "Overall survival") +
+# Distribution of Parch and SibSp
+p1 <- ggplot(train_df, aes(x = Parch)) +
+  geom_bar(fill = "lightblue") +
   theme_minimal()
 
-p1 <- df %>%
-  ggplot(aes(x = Pclass, fill = Pclass)) +
-  geom_bar() +
-  labs(title = "Class Distribution", x = "Passenger Class", y = "Count") +
-  theme_minimal() +
-  theme(legend.position = "none")  # Remove legend as it's redundant
-
-# Create the second plot - Survival by Class
-p2 <- ggplot(df, aes(x = Pclass, fill = Survived)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival Rate by Class",
-       x = "Passenger Class",
-       y = "Percentage",
-       fill = "Survived") +
+p2 <- ggplot(train_df, aes(x = SibSp)) +
+  geom_bar(fill = "lightgreen") +
   theme_minimal()
 
-# Combine the plots
-combined_plot <- p1 + p2 +
-  plot_layout(widths = c(1, 1)) +  # Equal widths for both plots
-  plot_annotation(title = "Passenger Class Analysis",
-                  theme = theme(plot.title = element_text(
-                    size = 16, face = "bold", hjust = 0.5
-                  )))
-
-# Display the combined plot
-combined_plot
-
-
-"Passenger Sex Analysis"
-p1 <- df %>%
-  ggplot(aes(x = Sex, fill = Sex)) +
-  geom_bar() +
-  labs(title = "Sex distribution", x = "Passenger Sex", y = "Count") +
-  theme_minimal() +
-  theme(legend.position = "none")
-
-p2 <- ggplot(df, aes(x = Sex, fill = Survived)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival Rate by Sex",
-       x = "Passenger Sex",
-       y = "Percentage",
-       fill = "Survived") +
-  theme_minimal()
-
-combined_plot <- p1 + p2 +
-  plot_layout(widths = c(1, 1)) +  # Equal widths for both plots
-  plot_annotation(title = "Passenger Sex Analysis",
-                  theme = theme(plot.title = element_text(
-                    size = 16, face = "bold", hjust = 0.5
-                  )))
+combined_plot <- p1 + p2 + 
+  plot_layout(widths = c(1, 1)) +
+  plot_annotation(title = "Family members count analysis")
 
 combined_plot
 
-cont_class_vs_embarked <- table(df$Pclass, df$Embarked)
-chisq.test(cont_class_vs_embarked)
+# Fare distribution
+ggplot(train_df, aes(x = Fare)) +
+  geom_histogram(fill="violet") +
+  theme_minimal() +
+  labs(title = "Distribution of ticket fares")
 
+# Fare is strongly skewed to the right
 
-"Passenger Embarkation Analysis"
-p1 <- df %>%
+# Age distribution
+ggplot(train_df, aes(x = Age)) +
+  geom_histogram(fill="skyblue") +
+  theme_minimal() +
+  labs(title = "Distribution of passengers age")
+
+# Distribution of categorical variables
+categorical_vars <- c("Sex", "Pclass", "Embarked", "Cabin", "Ticket", "Name")
+# Sex
+n_females <- sum(train_df$Sex == "female")
+sex_data <- data.frame(status = c("Female", "Male"),
+                       count = c(n_females, 891 - n_females)) %>%
+  mutate(
+    percentage = count / sum(count),
+    label = scales::percent(percentage, accuracy = 0.1)
+  )
+
+create_pie_chart(sex_data, "Titanic passenger Sex distribution", "Passenger's sex")
+# 64.8% were males
+
+# Embarked
+train_df %>%
+  drop_na(Embarked) %>%
   ggplot(aes(x = Embarked, fill = Embarked)) +
   geom_bar() +
-  labs(title = "Embarkation distribution", x = "Passenger Embarkation port", y = "Count") +
   theme_minimal() +
-  theme(legend.position = "none")
+  labs(
+    title = "Distribution of embarkation port",
+    x = "Port of embarkation"
+  )
 
-# p2 <- ggplot(df, aes(x = Embarked, fill = Pclass)) +
-#   geom_bar(position = "fill") +
-#   scale_y_continuous(labels = scales::percent) +
-#   labs(title = "Embarkation Frequency Rate by Passengers Class",
-#        x = "Embarkation Port",
-#        y = "Percentage",
-#        fill = "Pclass") +
-#   theme_minimal()
+# Pclass
+train_df %>%
+  ggplot(aes(x = Pclass, fill = Pclass)) +
+  geom_bar() +
+  theme_minimal() +
+  labs(
+    title = "Distribution of passenger class",
+    x = "Class"
+  )
 
-p2 <- ggplot(df, aes(x = Embarked, fill = Pclass)) +
+# Correlating variables with Survived
+
+# Survived vs SibSp and Parch
+# Grouped bar plot
+ggplot(train_df, aes(x = factor(SibSp), fill = Survived)) +
   geom_bar(position = "dodge") +
-  labs(title = "Passenger Class Distribution by Embarkation Port",
-       x = "Embarkation Port",
-       y = "Count",
-       fill = "Pclass") +
+  labs(
+    title = "Survival by Number of Siblings/Spouses",
+    x = "Number of Siblings/Spouses",
+    y = "Count",
+    fill = "Survived"
+  ) +
   theme_minimal()
 
-combined_plot <- p1 + p2 +
-  plot_layout(widths = c(1, 1)) +  # Equal widths for both plots
-  plot_annotation(title = "Passenger Embarkation Analysis",
-                  theme = theme(plot.title = element_text(
-                    size = 16, face = "bold", hjust = 0.5
-                  )))
-
-combined_plot
-
-ggplot(df, aes(x = Embarked, fill = Survived)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival Rate by Embarkation Port",
-       x = "Embarkation Port",
-       y = "Percentage",
-       fill = "Survive") +
+ggplot(train_df, aes(x = factor(Parch), fill = Survived)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Survival by Number of Parents/Children",
+    x = "Number of Parents/Children",
+    y = "Count",
+    fill = "Survived"
+  ) +
   theme_minimal()
 
-ggplot(df, aes(x = title_clean, fill = Survived)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival Rate by passengers title",
-       x = "Title",
-       y = "Percentage",
-       fill = "Survive") +
+table(train_df$Survived, train_df$SibSp)
+table(train_df$Survived, train_df$Parch)
+
+train_df$SibSp_grouped <- ifelse(train_df$SibSp >= 3, "3+", as.character(train_df$SibSp))
+fisher.test(table(train_df$Survived, train_df$SibSp_grouped))
+# p-value = 6.449e-08
+
+train_df$Parch_grouped <- ifelse(train_df$Parch >= 3, "3+", as.character(train_df$Parch))
+fisher.test(table(train_df$Survived, train_df$Parch_grouped))
+# p-value = 2.57e-05
+
+mean(train_df$SibSp < 1)
+# 68% of people didn't have spouse or sibling aboard
+
+mean(train_df$Parch < 1)
+# 76% of people didn't have parents or children aboard
+
+
+# Survived vs Fare
+
+ggplot(train_df, aes(x = Survived, y = Fare, fill = Survived)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of ticket fare grouped by survival status"
+  ) +
+  scale_fill_discrete(labels = c("No", "Yes")) +
   theme_minimal()
 
-df %>%
-  mutate(log_Fare = log(Fare)) %>%
-  create_boxplot("Pclass", "log_Fare", title = "log(Fare) distribution by passengers class", y_label = "Log(Fare)")
-
-create_boxplot(df, "Pclass", "family_size")
-
-ggplot(df, aes(x = family_type, fill = Survived)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival Rate by family type",
-       x = "Family type",
-       y = "Percentage",
+ggplot(train_df, aes(
+  x = log(Fare),
+  fill = Survived
+)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of Log Fares by Survival Status",
+       x = "Fare",
+       y = "Density",
        fill = "Survived") +
   theme_minimal()
 
-df %>%
-  select(title_clean, Survived) %>%
-  filter(title_clean %in% c("Mr.", "Military")) %>%
-  mutate(title_clean = droplevels(title_clean)) %>%
-  table()
+wilcox.test(Fare ~ Survived, data = train_df)
+# Reject H0: Fares are the same for survivors and non-survivors
 
-#            Survived
-# title_clean   0   1
-#    Military   3   2
-#    Mr.      436  81
+# Survival vs Age
+ggplot(train_df, aes(x = Survived, y = Age, fill = Survived)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of passengers age grouped by survival status"
+  ) +
+  scale_fill_discrete(labels = c("No", "Yes")) +
+  theme_minimal()
+
+ggplot(train_df, aes(
+  x = Age,
+  fill = Survived
+)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of passengers age by Survival Status",
+       x = "Age",
+       y = "Density",
+       fill = "Survived") +
+  theme_minimal()
+
+wilcox.test(Age ~ Survived, data = train_df)
+# p-value = 0.1605, can't reject H0
+
+# Survival vs Sex
+ggplot(train_df, aes(x = Sex, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate based on Sex", y = "Percentage")
+
+table(train_df$Survived, train_df$Sex)
+#     male female
+# No   468     81
+# Yes  109    233
+chisq.test(table(train_df$Survived, train_df$Sex))
+# p-value < 2.2e-16
+
+# Survival vs Embarked
+train_df %>%
+  drop_na(Embarked) %>%
+  ggplot(aes(x = Embarked, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate based on embarkation port", y = "Percentage")
+
+table(train_df$Survived, train_df$Embarked)
+#       S   C   Q
+# No  427  75  47
+# Yes 217  93  30
+chisq.test(table(train_df$Survived, train_df$Embarked))
+# p-value = 1.77e-06
+
+# Survival vs Pclass
+ggplot(train_df, aes(x = Pclass, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate based on passengers class", y = "Percentage")
+
+table(train_df$Survived, train_df$Pclass)
+#       1   2   3
+# No   80  97 372
+# Yes 136  87 119
+chisq.test(table(train_df$Survived, train_df$Pclass))
+# p-value < 2.2e-16
+
+# Analysis of engineered features
+source("feature_engineering.R")
+source("utils/create_boxplot.R")
+
+train_df <- engineer_features(train_df)
+
+# Age vs Title
+create_boxplot(
+  train_df,
+  "title_clean",
+  "Age",
+  "Distribution of passengers age grouped by title",
+  "Title",
+  "Age"
+)
+create_boxplot(
+  train_df,
+  "title_clean_2",
+  "Age",
+  "Distribution of passengers age grouped by title",
+  "Title",
+  "Age"
+)
+
+# title_clean + Pclass explains more variance in Age, so it is used to impute 
+# missing Age data
+summary(aov(Age ~ Pclass + title_clean, data = train_df))
+#              Df Sum Sq Mean Sq F value Pr(>F)    
+# Pclass        2  20930   10465   82.06 <2e-16 ***
+# title_clean   6  39622    6604   51.78 <2e-16 ***
+# Residuals   705  89905     128                   
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 177 observations deleted due to missingness
+
+summary(aov(Age ~ Pclass + Sex, data = train_df))
+#              Df Sum Sq Mean Sq F value   Pr(>F)    
+# Pclass        2  20930   10465   58.90  < 2e-16 ***
+# Sex           1   3389    3389   19.08 1.44e-05 ***
+# Residuals   710 126138     178                     
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 177 observations deleted due to missingness
+
+# Survived vs is_alone
+ggplot(train_df, aes(x = is_alone, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate vs traveled alone", y = "Percentage", x = "Traveled alone")
+
+table(train_df$Survived, train_df$is_alone)
+#       0   1
+# No  175 374
+# Yes 179 163
+chisq.test(table(train_df$Survived, train_df$is_alone))
+# p-value = 1.973e-09
+
+# Survived vs family size
+ggplot(train_df, aes(x = factor(family_size), fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate grouped by family size", y = "Percentage", x = "Family size")
+
+table(train_df$Survived, train_df$family_size)
+#       1   2   3   4   5   6   7   8  11
+# No  374  72  43   8  12  19   8   6   7
+# Yes 163  89  59  21   3   3   4   0   0
+
+ggplot(train_df, aes(x = factor(family_band), fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate grouped by family size", y = "Percentage", x = "Family size")
+
+table(train_df$Survived, train_df$family_band)
+#     Solo Small Large
+# No   374   115    60
+# Yes  163   148    31
+chisq.test(table(train_df$Survived, train_df$family_band))
+# p-value = 8.644e-12
+
+source("age.R")
+
+train_df <- train_df %>%
+  impute_age() %>%
+  engineer_features_2()
+
+# Survived vs age band
+
+ggplot(train_df, aes(x = age_band, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate by age group", y = "Percentage", x = "Age group")
+
+table(train_df$Survived, train_df$age_band)
+chisq.test(table(train_df$Survived, train_df$age_band))
+
+# Survived vs fare band
+ggplot(train_df, aes(x = fare_band, fill = Survived)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Survival rate by fare group", y = "Percentage", x = "Fare group")
+
+

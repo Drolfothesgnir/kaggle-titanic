@@ -1,57 +1,36 @@
 library(tidyverse)
 
-# Inferring deck from cabin number and number of cabins reserved by a passenger
-
-augment_by_cabin_info <- function(df) {
-  return (df %>%
-            mutate(
-              cabin_multiple = ifelse(is.na(Cabin), 0, str_count(Cabin, " ") + 1),
-              cabin_deck = as.factor(ifelse(is.na(Cabin), "NA", substr(Cabin, 1, 1)))
-            ))
-}
-
-# combining number of parents/children and number of siblings
-augment_by_family_size <- function(df) {
-  return(df %>%
-           mutate(family_size = Parch + SibSp))
-}
-
-augment_by_family_type <- function(df) {
-  family_type <- case_when(
-    df$family_size == 0 ~ "Solo",
-    df$family_size < 4 ~ "Small family",
-    # df$family_size < 6 ~ "Med. sized family",
-    df$family_size >= 4 ~ "Large family"
-  )
-  
-  family_type <- factor(family_type,
-                        levels = c("Solo", "Small family","Large family"))
-  
-  return(df %>%
-           mutate(family_type = family_type))
-}
-
 # Regex for extracting title from Name of the passenger
 # 'Moran, Mr. James' -> 'Mr.'
 regex_string <- ".*, ([A-Za-z ]+\\.?) "
 
 # Should work fine, since every passenger (in the training set) has a title
 extract_title <- function(name) {
-  return (str_match(name, regex_string)[2])
+  str_match(name, regex_string)[2]
 }
 
 # Combining rare titles into more common groups
 
 coerce_titles <- function(title) {
-  return(
-    case_when(
-      grepl("Capt|Col|Major", title) ~ "Military",
-      grepl("Mme|Ms", title) ~ "Mrs.",
-      grepl("Don|Lady|Sir|the Countess|Jonkheer", title) ~ "Noble",
-      grepl("Mlle", title) ~ "Miss.",
-      grepl("Dr|Rev", title) ~ "Professional",
-      .default  = as.character(title)
-    )
+  case_when(
+    grepl("Capt|Col|Major", title) ~ "Military",
+    grepl("Mme|Ms", title) ~ "Mrs.",
+    grepl("Don|Lady|Sir|the Countess|Jonkheer", title) ~ "Noble",
+    grepl("Mlle", title) ~ "Miss.",
+    grepl("Dr|Rev", title) ~ "Professional",
+    .default  = as.character(title)
+  )
+}
+
+coerce_titles_2 <- function(title) {
+  case_when(
+    grepl("Mme|Ms", title) ~ "Mrs.",
+    grepl(
+      "Don|Lady|Sir|the Countess|Jonkheer|Capt|Col|Major|Dr|Rev",
+      title
+    ) ~ "Rare",
+    grepl("Mlle", title) ~ "Miss.",
+    .default  = as.character(title)
   )
 }
 
@@ -76,22 +55,109 @@ augment_by_title <- function(df) {
   # Rare titles are grouped together because with their unique titles they represent
   # only few people
   title_clean <- coerce_titles(as.character(df$title))
+  title_clean_2 <- coerce_titles_2(as.character(df$title))
   
   title_clean_alt <- augment_by_title_alt(title_clean, df$Sex)
   
   df <- df %>%
     mutate(
-      title_clean = factor(title_clean),
-      title_clean_alt = factor(title_clean_alt)
+      title_clean = as.factor(title_clean),
+      title_clean_2 = as.factor(title_clean_2),
+      title_clean_alt = as.factor(title_clean_alt)
     )
   
   return(df)
 }
 
+augment_by_is_female <- function(df) {
+  df %>%
+    mutate(is_female = factor(ifelse(Sex == "female", 1, 0)))
+}
+
+
+# combining number of parents/children and number of siblings
+augment_by_family_size <- function(df) {
+  df %>%
+    mutate(family_size = Parch + SibSp + 1)
+}
+
+augment_by_is_alone <- function(df) {
+  df %>%
+    mutate(is_alone = factor(ifelse(Parch + SibSp == 0, 1, 0)))
+}
+
+augment_by_family_band <- function(data, family_size_col = "family_size") {
+  # Input validation
+  if (!family_size_col %in% colnames(data)) {
+    stop(sprintf("Column '%s' not found in data frame", family_size_col))
+  }
+  
+  if (any(data[[family_size_col]] < 0, na.rm = TRUE)) {
+    stop("Negative family size values found")
+  }
+  
+  # Create bands based on survival patterns
+  family_bands <- cut(
+    data[[family_size_col]],
+    breaks = c(-Inf, 1, 3, Inf),
+    labels = c("Solo", "Small", "Large"),
+    right = TRUE,
+    ordered_result = TRUE
+  )
+  
+  data %>%
+    mutate(family_band = family_bands)
+}
+
+augment_by_age_band <- function(df) {
+  age_band <- cut(
+    df$Age,
+    breaks = seq(
+      min(df$Age, na.rm = TRUE),
+      max(df$Age, na.rm = TRUE),
+      length.out = 6
+    ),
+    labels = c("<16", "16-32", "32-48", "48-64", "64+"),
+    include.lowest = TRUE,
+    ordered_result = TRUE
+  )
+  
+  mutate(df, age_band = age_band)
+}
+
+augment_by_fare_band <- function(df) {
+  # Handle zero fares separately
+  fare_breaks <- c(
+    0, # Explicitly include 0 as the lowest break
+    quantile(
+      df$Fare[df$Fare > 0], # Calculate quantiles only for non-zero fares
+      probs = seq(0.25, 1, 0.25),
+      na.rm = TRUE
+    )
+  )
+  
+  fare_band <- cut(
+    df$Fare,
+    breaks = fare_breaks,
+    labels = c("1", "2", "3", "4"),
+    include.lowest = TRUE,
+    ordered_result = TRUE
+  )
+  
+  mutate(df, fare_band = fare_band)
+}
+
 engineer_features <- function(df) {
   df %>%
-    augment_by_cabin_info() %>%
     augment_by_family_size() %>%
-    augment_by_family_type() %>%
-    augment_by_title()
+    augment_by_is_alone() %>%
+    augment_by_title() %>%
+    augment_by_is_female() %>%
+    augment_by_family_band()
+}
+
+engineer_features_2 <- function(df) {
+  df %>%
+    augment_by_age_band() %>%
+    augment_by_fare_band()
 }

@@ -82,15 +82,12 @@ age_imputation_data
 
 # Imputing age from title and class
 impute_age <- function(data) {
-  return (
-    data %>%
-      left_join(age_imputation_data, by = c("title_clean", "Pclass")) %>%
-      mutate(
-        age_imputed = is.na(Age),
-        Age = coalesce(Age, median_age)
-      ) %>%
-      select(-median_age)
-  )
+  data %>%
+    left_join(age_imputation_data, by = c("title_clean", "Pclass")) %>%
+    mutate(age_imputed = is.na(Age),
+           Age = coalesce(Age, median_age)) %>%
+    select(-median_age)
+  
 }
 
 df <- df %>%
