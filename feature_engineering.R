@@ -83,7 +83,11 @@ augment_by_family_size <- function(df) {
 
 augment_by_is_alone <- function(df) {
   df %>%
-    mutate(is_alone = factor(ifelse(Parch + SibSp == 0, 1, 0)))
+    mutate(is_alone = factor(
+      ifelse(Parch + SibSp == 0, 1, 0),
+      levels = c(0, 1),
+      labels = c("Not alone", "Alone")
+    ))
 }
 
 augment_by_family_band <- function(data, family_size_col = "family_size") {
@@ -147,17 +151,32 @@ augment_by_fare_band <- function(df) {
   mutate(df, fare_band = fare_band)
 }
 
+augment_by_log_fare <- function(df) {
+  df %>%
+    mutate(log_fare = log(Fare + 1))
+}
+
+augment_by_cabin_info <- function(df) {
+  df %>%
+    mutate(
+      cabin_multiple = ifelse(is.na(Cabin), 0, str_count(Cabin, " ") + 1),
+      cabin_deck = as.factor(ifelse(is.na(Cabin), "NA", substr(Cabin, 1, 1))) 
+    )
+}
+
 engineer_features <- function(df) {
   df %>%
     augment_by_family_size() %>%
     augment_by_is_alone() %>%
     augment_by_title() %>%
     augment_by_is_female() %>%
-    augment_by_family_band()
+    augment_by_family_band() %>%
+    augment_by_cabin_info() 
 }
 
 engineer_features_2 <- function(df) {
   df %>%
     augment_by_age_band() %>%
-    augment_by_fare_band()
+    augment_by_fare_band() %>%
+    augment_by_log_fare()
 }

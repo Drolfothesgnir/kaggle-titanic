@@ -172,7 +172,7 @@ ggplot(train_df, aes(x = Survived, y = Fare, fill = Survived)) +
   theme_minimal()
 
 ggplot(train_df, aes(
-  x = log(Fare),
+  x = log(Fare+1),
   fill = Survived
 )) +
   geom_density(alpha = 0.5) +
@@ -208,12 +208,10 @@ ggplot(train_df, aes(
 wilcox.test(Age ~ Survived, data = train_df)
 # p-value = 0.1605, can't reject H0
 
+source("utils/create_bar_perc_plot.R")
+
 # Survival vs Sex
-ggplot(train_df, aes(x = Sex, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate based on Sex", y = "Percentage")
+create_bar_perc_plot(train_df, "Sex", "Survived", title = "Survival rate based on Sex")
 
 table(train_df$Survived, train_df$Sex)
 #     male female
@@ -223,13 +221,10 @@ chisq.test(table(train_df$Survived, train_df$Sex))
 # p-value < 2.2e-16
 
 # Survival vs Embarked
+
 train_df %>%
   drop_na(Embarked) %>%
-  ggplot(aes(x = Embarked, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate based on embarkation port", y = "Percentage")
+  create_bar_perc_plot("Embarked", "Survived", title = "Survival rate based on embarkation port")
 
 table(train_df$Survived, train_df$Embarked)
 #       S   C   Q
@@ -239,11 +234,7 @@ chisq.test(table(train_df$Survived, train_df$Embarked))
 # p-value = 1.77e-06
 
 # Survival vs Pclass
-ggplot(train_df, aes(x = Pclass, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate based on passengers class", y = "Percentage")
+create_bar_perc_plot(train_df, "Pclass", "Survived", title = "Survival rate based on passengers class")
 
 table(train_df$Survived, train_df$Pclass)
 #       1   2   3
@@ -297,11 +288,12 @@ summary(aov(Age ~ Pclass + Sex, data = train_df))
 # 177 observations deleted due to missingness
 
 # Survived vs is_alone
-ggplot(train_df, aes(x = is_alone, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate vs traveled alone", y = "Percentage", x = "Traveled alone")
+
+create_bar_perc_plot(train_df,
+                     "is_alone",
+                     "Survived",
+                     title = "Survival rate vs traveled alone",
+                     xlab = "Traveled alone")
 
 table(train_df$Survived, train_df$is_alone)
 #       0   1
@@ -311,11 +303,9 @@ chisq.test(table(train_df$Survived, train_df$is_alone))
 # p-value = 1.973e-09
 
 # Survived vs family size
-ggplot(train_df, aes(x = factor(family_size), fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate grouped by family size", y = "Percentage", x = "Family size")
+train_df %>%
+  mutate(family_size = factor(family_size)) %>%
+  create_bar_perc_plot("family_size", "Survived", title = "Survival rate grouped by family size", xlab = "Family size")
 
 table(train_df$Survived, train_df$family_size)
 #       1   2   3   4   5   6   7   8  11
@@ -342,21 +332,36 @@ train_df <- train_df %>%
   engineer_features_2()
 
 # Survived vs age band
-
-ggplot(train_df, aes(x = age_band, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate by age group", y = "Percentage", x = "Age group")
+create_bar_perc_plot(train_df, "age_band", "Survived", title = "Survival rate by age group", xlab = "Age group")
 
 table(train_df$Survived, train_df$age_band)
 chisq.test(table(train_df$Survived, train_df$age_band))
 
 # Survived vs fare band
-ggplot(train_df, aes(x = fare_band, fill = Survived)) +
-  geom_bar(position = "fill") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Survival rate by fare group", y = "Percentage", x = "Fare group")
+create_bar_perc_plot(train_df, "fare_band", "Survived", title = "Survival rate by fare group", xlab = "Fare group")
 
+# Cabin and deck analysis
 
+table(train_df$Survived, train_df$cabin_deck)
+#       A   B   C   D   E   F   G  NA   T
+# No    8  12  24   8   8   5   2 481   1
+# Yes   7  35  35  25  24   8   2 206   0
+
+# drop G and T deck, since they aren't informative enough
+train_df_no_G_T_deck <- train_df %>%
+  filter(!(cabin_deck %in% c("G", "T"))) %>%
+  mutate(cabin_deck = droplevels(cabin_deck))
+
+table(train_df_no_G_T_deck$Survived, train_df_no_G_T_deck$cabin_deck)
+#       A   B   C   D   E   F  NA
+# No    8  12  24   8   8   5 481
+# Yes   7  35  35  25  24   8 206
+chisq.test(table(train_df_no_G_T_deck$Survived, train_df_no_G_T_deck$cabin_deck))
+# p-value < 2.2e-16
+
+create_bar_perc_plot(train_df_no_G_T_deck, "cabin_deck", "Survived", title = "Survival rate by deck location", "Deck")
+
+table(train_df$Survived, train_df$cabin_multiple)
+#       0   1   2   3   4
+# No  481  58   7   3   0
+# Yes 206 122   9   3   2

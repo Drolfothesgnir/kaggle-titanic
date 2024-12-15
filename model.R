@@ -13,9 +13,8 @@ train_control <- trainControl(
   method = "cv",
   number = 10,
   classProbs = TRUE,
-  # Get probability predictions
-  savePredictions = "final"
-  # Save predictions for later analysis
+  savePredictions = "final",
+  search = "random"  # Add this line
 )
 
 # Create formula once
@@ -28,19 +27,24 @@ train_control <- trainControl(
 # Current best
 # model_formula <- Survived ~ Pclass + Age + fare_band + title_clean_alt + family_band
 
-model_formula <- Survived ~ Pclass + Age + fare_band + title_clean_alt + family_band
+model_formula <- Survived ~ Pclass + Age + log_fare + title_clean_alt + Parch + SibSp + cabin_multiple
 
 model_specs <- list(
   logistic = list(method = "glm", family = "binomial"),
-  # rf = list(
-  #   method = "ranger",
-  #   tuneGrid = expand.grid(
-  #     mtry = 2:4,                     # Reduce from 5 to force more randomness
-  #     splitrule = "extratrees",       # Keep extratrees since it worked well
-  #     min.node.size = c(15, 20, 25)   # Increase min node size significantly
-  #   ),
-  #   importance = "permutation"
-  # )
+  rf = list(
+    method = "ranger",
+    tuneGrid = expand.grid(
+      # Local exploration around mtry = 2
+      mtry = c(1, 2, 3, 4),  
+      
+      # Focus on gini but also try extratrees for comparison
+      splitrule = c("gini", "extratrees"),
+      
+      # Explore around min.node.size = 25
+      min.node.size = c(20, 23, 25, 27, 30)
+    ),
+    importance = "permutation"
+  )
   # xgb_stage_1 = list(
   #   method = "xgbTree",
   #   tuneGrid = expand.grid(
@@ -59,20 +63,30 @@ model_specs <- list(
   #   verbosity = 0
   # )
   # ,
-  xgb_stage_2 = list(
-    method = "xgbTree",
-    tuneGrid = expand.grid(
-      nrounds = c(75, 100, 125),      # Center around 100 which was best
-      max_depth = c(2, 3, 4),         # Center around 3 which was best
-      eta = c(0.05, 0.1, 0.15),       # More granular around 0.1
-      gamma = c(0, 0.05, 0.1),        # Try light regularization
-      colsample_bytree = c(0.7, 0.8, 0.9),  # Vary feature sampling
-      min_child_weight = c(1, 2),     # Try slightly higher min weight
-      subsample = c(0.7, 0.8, 0.9)    # Vary row sampling
-    ),
-    verbosity = 0
-  )
+  # xgb_stage_2 = list(
+  #   method = "xgbTree",
+  #   tuneGrid = expand.grid(
+  #     nrounds = c(75, 100, 125),      # Center around 100 which was best
+  #     max_depth = c(2, 3, 4),         # Center around 3 which was best
+  #     eta = c(0.05, 0.1, 0.15),       # More granular around 0.1
+  #     gamma = c(0, 0.05, 0.1),        # Try light regularization
+  #     colsample_bytree = c(0.7, 0.8, 0.9),  # Vary feature sampling
+  #     min_child_weight = c(1, 2),     # Try slightly higher min weight
+  #     subsample = c(0.7, 0.8, 0.9)    # Vary row sampling
+  #   ),
+  #   verbosity = 0
+  # )
 )
+
+create_random_rf_grid <- function(n_samples = 20) {
+  data.frame(
+    mtry = sample(2:6, n_samples, replace = TRUE),
+    splitrule = sample(c("gini", "extratrees"), n_samples, replace = TRUE),
+    min.node.size = sample(5:30, n_samples, replace = TRUE)
+  )
+}
+set.seed(123)
+# model_specs$rf$tuneGrid <- create_random_rf_grid(20) 
 
 # Train multiple models
 models <- map(names(model_specs), function(model_name) {
@@ -112,15 +126,15 @@ names(pred_data) <- names(models)
 # get accuracy, sensitivity, specificity, precision and F of each model
 get_model_metrics(pred_data)
 
-# rf_importance <- varImp(models[["rf"]])
-# print("Random Forest Feature Importance:")
-# print(rf_importance)
-# plot(varImp(models[["rf"]]), main = "Feature Importance For RF")
-#
-xgb_importance <- varImp(models[["xgb_stage_2"]])
-print("\nXGBoost Feature Importance:")
-print(xgb_importance)
-plot(varImp(models[["xgb_stage_2"]]), main = "Feature Importance For XGB")
+rf_importance <- varImp(models[["rf"]])
+print("Random Forest Feature Importance:")
+print(rf_importance)
+plot(varImp(models[["rf"]]), main = "Feature Importance For RF")
+
+# xgb_importance <- varImp(models[["xgb_stage_2"]])
+# print("\nXGBoost Feature Importance:")
+# print(xgb_importance)
+# plot(varImp(models[["xgb_stage_2"]]), main = "Feature Importance For XGB")
 #
 # # For logistic regression - get coefficients
 # log_coef <- coef(models[["logistic"]]$finalModel)
@@ -148,7 +162,7 @@ plot(varImp(models[["xgb_stage_2"]]), main = "Feature Importance For XGB")
 # median_fare <- median(df$Fare, na.rm = TRUE)
 # test_df <- prepare_test_data() %>%
 #   replace_na(list(Fare = median_fare))
-pred <- predict(models[["xgb_stage_2"]], test_df)
+pred <- predict(models[["rf"]], test_df)
 pred <- ifelse(pred == "Yes", 1, 0)
 submission_df <- test_df %>%
   select(PassengerId) %>%
